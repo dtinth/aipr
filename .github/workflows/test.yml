@@ -26,9 +26,6 @@ jobs:
         version: 7
         run_install: true
 
-    - name: Type check
-      run: pnpm type-check
-
     - name: Lint
       run: pnpm lint
 

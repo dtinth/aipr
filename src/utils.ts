@@ -1,64 +1,10 @@
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
-import ini from 'ini';
-import { execa } from 'execa';
 import { Configuration, OpenAIApi } from 'openai';
 
-const fileExists = (filePath: string) => fs.access(filePath).then(() => true, () => false);
-
-type ConfigType = {
-	OPENAI_KEY?: string;
-};
-
-export const getConfig = async (): Promise<ConfigType> => {
-	const configPath = path.join(os.homedir(), '.aicommits');
-	const configExists = await fileExists(configPath);
-	if (!configExists) {
-		return {};
-	}
-
-	const configString = await fs.readFile(configPath, 'utf8');
-	return ini.parse(configString);
-};
-
-export const assertGitRepo = async () => {
-	const { stdout } = await execa('git', ['rev-parse', '--is-inside-work-tree'], { reject: false });
-
-	if (stdout !== 'true') {
-		throw new Error('The current directory must be a Git repository!');
-	}
-};
-
-const excludeFromDiff = [
+export const excludeFromDiff = [
 	'package-lock.json',
 	'yarn.lock',
 	'pnpm-lock.yaml',
-].map(file => `:(exclude)${file}`);
-
-export const getStagedDiff = async () => {
-	const diffCached = ['diff', '--cached'];
-	const { stdout: files } = await execa(
-		'git',
-		[...diffCached, '--name-only', ...excludeFromDiff],
-	);
-
-	if (!files) {
-		return;
-	}
-
-	const { stdout: diff } = await execa(
-		'git',
-		[...diffCached, ...excludeFromDiff],
-	);
-
-	return {
-		files: files.split('\n'),
-		diff,
-	};
-};
-
-export const getDetectedMessage = (files: string[]) => `Detected ${files.length.toLocaleString()} staged file${files.length > 1 ? 's' : ''}`;
+]
 
 const sanitizeMessage = (message: string) => message.trim().replace(/[\n\r]/g, '').replace(/(\w)\.$/, '$1');
 
